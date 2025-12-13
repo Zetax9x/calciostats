@@ -1,73 +1,141 @@
-# React + TypeScript + Vite
+# ⚽ CalcioStats
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Un'applicazione web moderna per visualizzare statistiche del calcio italiano, costruita con React, TypeScript e Vite.
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?logo=tailwindcss)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Funzionalità
 
-## React Compiler
+- 🏆 **Campionati Italiani** - Visualizza tutti i campionati dalla Serie A alle serie minori
+- 📊 **Classifiche** - Classifiche complete con statistiche dettagliate
+- 📅 **Partite e Risultati** - Calendario partite e risultati passati
+- ⚽ **Marcatori** - Classifica cannonieri con statistiche gol
+- 👥 **Giocatori** - Database giocatori con dettagli e ruoli
+- 🏟️ **Stadi** - Informazioni sui venue con link a Google Maps
+- 🎯 **Dettagli Squadra** - Pagina dettagliata per ogni squadra con allenatore e stadio
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Stack Tecnologico
 
-## Expanding the ESLint configuration
+- **Frontend**: React 19 con TypeScript
+- **Bundler**: Vite 7
+- **Styling**: TailwindCSS con design system custom
+- **Animazioni**: Framer Motion
+- **Icone**: Lucide React
+- **Routing**: React Router DOM v7
+- **HTTP Client**: Axios
+- **API**: SoccersAPI
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Installazione
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisiti
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js 18+ 
+- npm o yarn
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Setup
+
+1. **Clona il repository**
+   ```bash
+   git clone <repository-url>
+   cd football-stats
+   ```
+
+2. **Installa le dipendenze**
+   ```bash
+   npm install
+   ```
+
+3. **Configura le variabili d'ambiente**
+   
+   Crea un file `.env.local` nella root del progetto:
+   ```env
+   VITE_SOCCERSAPI_USER=tuo_username
+   VITE_SOCCERSAPI_TOKEN=tuo_token
+   ```
+   
+   > Ottieni le credenziali API registrandoti su [SoccersAPI](https://soccersapi.com)
+
+4. **Avvia il server di sviluppo**
+   ```bash
+   npm run dev
+   ```
+
+5. **Apri nel browser**
+   ```
+   http://localhost:5173
+   ```
+
+## 📁 Struttura del Progetto
+
+```
+src/
+├── api/              # Client API e funzioni fetch
+│   ├── client.ts     # Configurazione Axios
+│   └── football.ts   # Funzioni API (leagues, teams, fixtures, etc.)
+├── components/       # Componenti React riutilizzabili
+│   ├── Layout.tsx    # Layout principale con header/footer
+│   └── LeagueSidebar.tsx
+├── pages/            # Pagine dell'applicazione
+│   ├── Home.tsx      # Homepage con lista campionati
+│   ├── LeagueDetails.tsx  # Dettagli campionato
+│   ├── TeamDetails.tsx    # Dettagli squadra
+│   ├── PlayerDetails.tsx  # Dettagli giocatore
+│   └── DebugPage.tsx      # Tool debug API
+├── types/            # Definizioni TypeScript
+│   └── index.ts      # Interfacce API
+├── App.tsx           # Routes dell'app
+├── main.tsx          # Entry point
+└── index.css         # Stili globali e design system
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📜 Script Disponibili
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Script | Descrizione |
+|--------|-------------|
+| `npm run dev` | Avvia il server di sviluppo |
+| `npm run build` | Build di produzione |
+| `npm run preview` | Anteprima della build |
+| `npm run lint` | Esegue ESLint |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🎨 Design System
+
+L'applicazione utilizza un design system moderno con:
+
+- **Glass Morphism** - Card con effetto vetro e blur
+- **Gradient Accents** - Gradienti verde/ciano per accenti
+- **Dark Theme** - Interfaccia scura ottimizzata per la leggibilità
+- **Responsive** - Layout adattivo per mobile e desktop
+- **Animazioni fluide** - Transizioni smooth con Framer Motion
+
+## 🔧 Configurazione API
+
+L'app utilizza un proxy Vite per evitare problemi CORS. La configurazione è in `vite.config.ts`:
+
+```typescript
+server: {
+  proxy: {
+    '/api': {
+      target: 'https://api.soccersapi.com/v2.2',
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/api/, '')
+    }
+  }
+}
 ```
+
+## 📝 Note
+
+- I dati sono forniti da SoccersAPI e richiedono un account con API key
+- L'applicazione è ottimizzata per i campionati italiani
+- La pagina Debug (`/debug`) permette di testare endpoint API direttamente
+
+## 📄 Licenza
+
+Questo progetto è privato.
+
+---
+
+Fatto con ❤️ per il calcio italiano
