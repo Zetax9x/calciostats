@@ -59,7 +59,7 @@ export const Home = () => {
                     <span className="text-gradient">Stats</span>
                 </h1>
                 <p className="text-dark-400 text-lg max-w-md mx-auto">
-                    Segui tutti i campionati italiani dalla Serie A alla Terza Categoria
+                    Segui tutti i campionati italiani dalla Serie A alla Serie C
                 </p>
             </motion.div>
 
@@ -113,7 +113,7 @@ export const Home = () => {
                                     <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors truncate">
                                         {league.name}
                                     </h3>
-                                    {league.is_cup && (
+                                    {league.is_cup == true && (
                                         <span className="badge-secondary text-[10px] mt-1.5">COPPA</span>
                                     )}
                                 </div>

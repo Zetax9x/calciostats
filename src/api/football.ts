@@ -76,7 +76,7 @@ export const getTopScorers = async (seasonId: string) => {
     const response = await apiClient.get<ApiResponse<Leader[]>>('leaders', {
         params: {
             season_id: seasonId,
-            t: 'topscores'
+            t: 'topscorers'
         }
     });
     return response.data.data;
