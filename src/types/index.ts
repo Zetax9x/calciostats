@@ -128,17 +128,13 @@ export interface Fixture {
 }
 
 export interface Leader {
-    rank: number;
-    player_id: string;
-    player_name: string;
-    player_surname: string;
-    team_id: string;
-    team_name: string;
-    goals: number;
-    penalty_goals: number;
+    pos: number;
+    player: { id: number; name: string };
+    team: { id: number; name: string };
+    goals: { overall: number; home: number; away: number };
+    penalties: number;
     minutes_played?: number;
     matches_played?: number;
-    team_img?: string;
 }
 
 export interface SquadPlayer {

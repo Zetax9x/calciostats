@@ -473,48 +473,44 @@ export const LeagueDetails = () => {
                             {
                                 activeSection === 'leaders' && (
                                     leaders.length > 0 ? (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="p-2.5 bg-accent-500/10 rounded-xl">
-                                                    <Trophy className="w-5 h-5 text-accent-400" />
-                                                </div>
-                                                <h2 className="text-lg font-semibold text-white">Classifica Marcatori</h2>
-                                            </div>
-                                            <div className="card-soft p-0 overflow-hidden">
-                                                <table className="w-full text-left text-sm">
-                                                    <thead className="bg-surface-800/50 uppercase text-xs tracking-wider">
-                                                        <tr className="border-b border-surface-700 text-surface-500">
-                                                            <th className="py-3.5 pl-4 w-12">#</th>
-                                                            <th className="py-3.5 px-2">Giocatore</th>
-                                                            <th className="py-3.5 px-2 hidden sm:table-cell">Squadra</th>
-                                                            <th className="py-3.5 pr-4 text-right">Gol</th>
+                                        <div className="overflow-x-auto glass-card p-0">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-dark-800/50 uppercase text-xs tracking-wider">
+                                                    <tr className="border-b border-white/10 text-dark-400">
+                                                        <th className="py-3.5 pl-4 w-12">#</th>
+                                                        <th className="py-3.5 px-2">Giocatore</th>
+                                                        <th className="py-3.5 px-2 hidden sm:table-cell">Squadra</th>
+                                                        <th className="py-3.5 pr-4 text-right">Gol</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {leaders.slice(0, 10).map((player, idx) => (
+                                                        <tr key={player.player.id || idx} className="hover:bg-white/5 transition-colors">
+                                                            <td className="py-3 pl-4 font-medium text-dark-500">{player.pos || idx + 1}</td>
+                                                            <td className="py-3 px-2 font-semibold text-white">{player.player.name}</td>
+                                                            <td className="py-3 px-2 text-dark-400 hidden sm:table-cell">
+                                                                <div className="flex items-center gap-2">
+                                                                    <img
+                                                                        src={`https://cdn.soccersapi.com/images/soccer/teams/100/${player.team.id}.png`}
+                                                                        alt={player.team.name}
+                                                                        className="w-6 h-6 object-contain bg-dark-700 rounded-lg p-0.5"
+                                                                    />
+                                                                    {player.team.name}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-3 pr-4 text-right font-bold text-gradient">
+                                                                {player.goals.overall}
+                                                                {player.penalties > 0 && <span className="text-dark-500 text-sm font-normal ml-1">({player.penalties})</span>}
+                                                            </td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-surface-800/50">
-                                                        {leaders.map((player, idx) => (
-                                                            <tr key={player.player_id || idx} className="hover:bg-surface-800/50 transition-colors">
-                                                                <td className="py-3 pl-4 font-medium text-surface-500">{player.rank || idx + 1}</td>
-                                                                <td className="py-3 px-2 font-semibold text-white">{player.player_name} {player.player_surname}</td>
-                                                                <td className="py-3 px-2 text-surface-400 hidden sm:table-cell">
-                                                                    <div className="flex items-center gap-2">
-                                                                        {player.team_img && <img src={player.team_img} alt={player.team_name} className="w-5 h-5 object-contain" />}
-                                                                        {player.team_name}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-3 pr-4 text-right font-bold text-accent-400">
-                                                                    {player.goals}
-                                                                    {player.penalty_goals > 0 && <span className="text-surface-500 text-sm font-normal ml-1">({player.penalty_goals})</span>}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center py-16 bg-gray-900/30 rounded-2xl border border-gray-800 border-dashed">
-                                            <Trophy className="w-12 h-12 text-gray-600 mb-2" />
-                                            <p className="text-gray-400">Dati marcatori non disponibili.</p>
+                                        <div className="flex flex-col items-center justify-center py-16 glass-card border-dashed">
+                                            <Trophy className="w-12 h-12 text-dark-600 mb-2" />
+                                            <p className="text-dark-400">Dati marcatori non disponibili.</p>
                                         </div>
                                     )
                                 )
