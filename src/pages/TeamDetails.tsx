@@ -21,29 +21,20 @@ export const TeamDetails = () => {
             if (!id) return;
             setLoading(true);
             try {
-                const teamData = await getTeam(id);
+                // Fetch team using normalized API
+                const teamData = await fetchTeam(id);
                 if (teamData) {
                     setTeam(teamData);
-                    const venueId = teamData.venue_id;
-                    if (venueId) {
-                        const venueData = await getVenue(String(venueId));
-                        setVenue(venueData);
-                    }
-                    const coachId = teamData.coach_id;
-                    if (coachId) {
-                        const coachData = await getCoach(coachId);
-                        setCoach(coachData);
-                    }
                 }
 
-                // Fetch team's recent fixtures (with season_id if available)
+                // Fetch team's recent fixtures using normalized API
                 if (seasonId) {
-                    const fixturesData = await getTeamFixtures(id, seasonId);
+                    const fixturesData = await fetchFixtures(seasonId, { teamId: id });
                     console.log('Fixtures data for team', id, 'season', seasonId, ':', fixturesData);
-                    // Filter completed matches (status 3 = Finished) and sort by date descending
+                    // Filter completed matches and sort by date descending
                     const completedMatches = fixturesData
-                        .filter((f: any) => f.teams?.home && f.teams?.away && (f.status === 3 || f.status_name === 'Finished'))
-                        .sort((a: any, b: any) => new Date(b.time?.date || b.start_date || '').getTime() - new Date(a.time?.date || a.start_date || '').getTime())
+                        .filter(f => f.status === 'finished')
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .slice(0, 10);
                     console.log('Completed matches:', completedMatches);
                     setRecentMatches(completedMatches);
@@ -110,9 +101,9 @@ export const TeamDetails = () => {
 
                 <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
                     {/* Team Logo */}
-                    <div className="w-32 h-32 md:w-40 md:h-40 bg-white/10 rounded-3xl p-5 flex items-center justify-center shrink-0">
+                    <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-3xl p-5 flex items-center justify-center shrink-0">
                         <img
-                            src={team.img || `https://cdn.soccersapi.com/images/soccer/teams/150/${team.id}.png`}
+                            src={team.logo}
                             alt={team.name}
                             className="w-full h-full object-contain"
                             onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
@@ -121,15 +112,15 @@ export const TeamDetails = () => {
 
                     {/* Team Info */}
                     <div className="text-center md:text-left">
-                        <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
+                        <h1 className="text-3xl md:text-4xl font-display font-bold text-gray-800 mb-4">
                             {team.name}
                         </h1>
 
                         <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                            {team.country?.name && (
+                            {team.country && (
                                 <span className="badge-primary">
                                     <Globe className="w-3 h-3" />
-                                    {team.country.name === 'Italy' ? 'Italia' : team.country.name}
+                                    {team.country === 'Italy' ? 'Italia' : team.country}
                                 </span>
                             )}
                             {team.founded && (
@@ -142,22 +133,22 @@ export const TeamDetails = () => {
 
                         {/* Stadium & Coach Info */}
                         <div className="flex flex-col gap-2 mt-4 text-sm">
-                            {(venue || team.venue) && (
-                                <div className="flex flex-wrap items-center gap-2 text-dark-300">
-                                    <Building2 className="w-4 h-4 text-primary-400" />
-                                    <span className="text-white font-medium">{venue?.name || team.venue?.name}</span>
-                                    {(venue?.city || team.venue?.city) && (
-                                        <span className="text-dark-400">• Città: {venue?.city || team.venue?.city}</span>
+                            {team.venue && (
+                                <div className="flex flex-wrap items-center gap-2 text-gray-500">
+                                    <Building2 className="w-4 h-4 text-primary-500" />
+                                    <span className="text-gray-800 font-medium">{team.venue.name}</span>
+                                    {team.venue.city && (
+                                        <span className="text-gray-500">• Città: {team.venue.city}</span>
                                     )}
-                                    {(venue?.capacity || team.venue?.capacity) && (
-                                        <span className="text-dark-400">• {venue?.capacity || team.venue?.capacity} posti</span>
+                                    {team.venue.capacity && (
+                                        <span className="text-gray-500">• {team.venue.capacity.toLocaleString()} posti</span>
                                     )}
-                                    {venue?.coordinates && (
+                                    {team.venue.coordinates && (
                                         <a
-                                            href={`https://www.google.com/maps?q=${venue.coordinates.lat},${venue.coordinates.long}`}
+                                            href={`https://www.google.com/maps?q=${team.venue.coordinates.lat},${team.venue.coordinates.lng}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-1 text-primary-400 hover:text-primary-300 transition-colors"
+                                            className="flex items-center gap-1 text-primary-500 hover:text-primary-600 transition-colors"
                                         >
                                             <MapPin className="w-3 h-3" />
                                             Mappa
@@ -165,12 +156,12 @@ export const TeamDetails = () => {
                                     )}
                                 </div>
                             )}
-                            {coach && (
-                                <div className="flex items-center gap-2 text-dark-300">
-                                    <Users className="w-4 h-4 text-secondary-400" />
-                                    <span className="text-white font-medium">{coach.name}</span>
-                                    {coach.nationality && (
-                                        <span className="text-dark-400">• {coach.nationality}</span>
+                            {team.coach && (
+                                <div className="flex items-center gap-2 text-gray-500">
+                                    <Users className="w-4 h-4 text-secondary-500" />
+                                    <span className="text-gray-800 font-medium">{team.coach.name}</span>
+                                    {team.coach.nationality && (
+                                        <span className="text-gray-500">• {team.coach.nationality}</span>
                                     )}
                                 </div>
                             )}
@@ -191,19 +182,17 @@ export const TeamDetails = () => {
                         <div className="p-2 bg-primary-500/20 rounded-xl">
                             <History className="w-5 h-5 text-primary-400" />
                         </div>
-                        <h2 className="text-xl font-bold text-white">Ultime Partite</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Ultime Partite</h2>
                     </div>
 
                     <div className="space-y-3">
                         {recentMatches.map((match) => {
-                            if (!match.teams) return null;
-
-                            const isHome = String(match.teams.home.id) === String(id);
-                            const opponent = isHome ? match.teams.away : match.teams.home;
+                            const isHome = match.homeTeam.id === id;
+                            const opponent = isHome ? match.awayTeam : match.homeTeam;
 
                             // Compute form from scores
-                            const homeScore = Number(match.scores?.home_score || 0);
-                            const awayScore = Number(match.scores?.away_score || 0);
+                            const homeScore = match.score.home ?? 0;
+                            const awayScore = match.score.away ?? 0;
                             let form: 'W' | 'D' | 'L';
                             if (isHome) {
                                 form = homeScore > awayScore ? 'W' : homeScore < awayScore ? 'L' : 'D';
@@ -215,9 +204,10 @@ export const TeamDetails = () => {
                             const formText = form === 'W' ? 'V' : form === 'D' ? 'P' : 'S';
 
                             return (
-                                <div
+                                <Link
                                     key={match.id}
-                                    className="flex items-center gap-4 p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 transition-colors"
+                                    to={`/match/${match.id}`}
+                                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                                 >
                                     {/* Form Badge */}
                                     <div className={`w-10 h-10 ${formColor} rounded-xl flex items-center justify-center shrink-0`}>
@@ -227,27 +217,27 @@ export const TeamDetails = () => {
                                     {/* Opponent */}
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <img
-                                            src={opponent.img || `https://cdn.soccersapi.com/images/soccer/teams/100/${opponent.id}.png`}
+                                            src={opponent.logo}
                                             alt={opponent.name}
                                             className="w-8 h-8 object-contain"
                                             onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
                                         />
                                         <div className="min-w-0">
-                                            <Link to={`/team/${opponent.id}`} className="text-white font-medium truncate hover:text-primary-400 transition-colors">{opponent.name}</Link>
-                                            <p className="text-dark-400 text-xs">{isHome ? 'Casa' : 'Trasferta'}</p>
+                                            <span className="text-gray-800 font-medium truncate block">{opponent.name}</span>
+                                            <p className="text-gray-500 text-xs">{isHome ? 'Casa' : 'Trasferta'}</p>
                                         </div>
                                     </div>
 
                                     {/* Score */}
                                     <div className="text-right shrink-0">
-                                        <p className="text-white font-bold text-lg">
-                                            {match.scores?.home_score ?? '-'} - {match.scores?.away_score ?? '-'}
+                                        <p className="text-gray-800 font-bold text-lg">
+                                            {match.score.home ?? '-'} - {match.score.away ?? '-'}
                                         </p>
-                                        <p className="text-dark-500 text-xs">
-                                            {new Date((match as any).time?.date || match.start_date || '').toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                                        <p className="text-gray-500 text-xs">
+                                            {match.date ? new Date(match.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : ''}
                                         </p>
                                     </div>
-                                </div>
+                                </Link>
                             );
                         })}
                     </div>

@@ -4,7 +4,7 @@ import {
     fetchMatch, fetchH2H, fetchMatchStats, fetchMatchEvents, fetchMatchLineups, fetchFixtures,
     type NormalizedMatch, type NormalizedH2H, type NormalizedMatchStats, type NormalizedMatchEvent, type NormalizedMatchLineups
 } from '../api';
-import { ChevronLeft, Calendar, MapPin, Clock, Trophy, Loader2, Swords, BarChart3, Users, Activity } from 'lucide-react';
+import { ChevronLeft, Calendar, MapPin, Clock, Trophy, Loader2, Swords, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const MatchDetails = () => {
@@ -12,9 +12,9 @@ export const MatchDetails = () => {
     const navigate = useNavigate();
     const [match, setMatch] = useState<NormalizedMatch | null>(null);
     const [h2h, setH2H] = useState<NormalizedH2H | null>(null);
-    const [stats, setStats] = useState<NormalizedMatchStats | null>(null);
+    const [_stats, _setStats] = useState<NormalizedMatchStats | null>(null);
     const [events, setEvents] = useState<NormalizedMatchEvent[]>([]);
-    const [lineups, setLineups] = useState<NormalizedMatchLineups | null>(null);
+    const [_lineups, _setLineups] = useState<NormalizedMatchLineups | null>(null);
     const [homeForm, setHomeForm] = useState<NormalizedMatch[]>([]);
     const [awayForm, setAwayForm] = useState<NormalizedMatch[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,9 +45,9 @@ export const MatchDetails = () => {
                     fetchMatchEvents(id),
                     fetchMatchLineups(id)
                 ]);
-                setStats(statsData);
+                _setStats(statsData);
                 setEvents(eventsData);
-                setLineups(lineupsData);
+                _setLineups(lineupsData);
 
                 // Fetch recent form for both teams (last 5 matches)
                 if (homeTeamId && seasonId) {
@@ -492,37 +492,38 @@ function InfoRow({ label, value, highlight = false }: { label: string; value?: s
     );
 }
 
-function StatBar({ label, homeValue, awayValue, suffix = '' }: {
-    label: string;
-    homeValue: number | string;
-    awayValue: number | string;
-    suffix?: string
-}) {
-    const home = Number(homeValue) || 0;
-    const away = Number(awayValue) || 0;
-    const total = home + away || 1;
-    const homePercent = (home / total) * 100;
-
-    return (
-        <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-                <span className="text-white font-medium">{home}{suffix}</span>
-                <span className="text-gray-500">{label}</span>
-                <span className="text-white font-medium">{away}{suffix}</span>
-            </div>
-            <div className="flex h-2 rounded-full overflow-hidden bg-gray-200">
-                <div
-                    className="bg-primary-500 transition-all duration-500"
-                    style={{ width: `${homePercent}%` }}
-                />
-                <div
-                    className="bg-secondary-500 transition-all duration-500"
-                    style={{ width: `${100 - homePercent}%` }}
-                />
-            </div>
-        </div>
-    );
-}
+// TODO: Re-enable when Stats section is implemented
+// function StatBar({ label, homeValue, awayValue, suffix = '' }: {
+//     label: string;
+//     homeValue: number | string;
+//     awayValue: number | string;
+//     suffix?: string
+// }) {
+//     const home = Number(homeValue) || 0;
+//     const away = Number(awayValue) || 0;
+//     const total = home + away || 1;
+//     const homePercent = (home / total) * 100;
+//
+//     return (
+//         <div className="space-y-2">
+//             <div className="flex justify-between text-sm">
+//                 <span className="text-gray-800 font-medium">{home}{suffix}</span>
+//                 <span className="text-gray-500">{label}</span>
+//                 <span className="text-gray-800 font-medium">{away}{suffix}</span>
+//             </div>
+//             <div className="flex h-2 rounded-full overflow-hidden bg-gray-200">
+//                 <div
+//                     className="bg-primary-500 transition-all duration-500"
+//                     style={{ width: `${homePercent}%` }}
+//                 />
+//                 <div
+//                     className="bg-secondary-500 transition-all duration-500"
+//                     style={{ width: `${100 - homePercent}%` }}
+//                 />
+//             </div>
+//         </div>
+//     );
+// }
 
 function getEventIcon(type: string): string {
     const t = (type || '').toLowerCase();

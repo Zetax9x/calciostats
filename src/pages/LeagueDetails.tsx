@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 // Using normalized API-Football adapter
-import { fetchStandings, fetchFixtures, fetchLeague, fetchLeaders, type NormalizedStanding, type NormalizedMatch, type NormalizedLeague, type NormalizedLeader } from '../api';
+import { fetchStandings, fetchFixtures, fetchLeague, type NormalizedStanding, type NormalizedMatch, type NormalizedLeague, type NormalizedLeader } from '../api';
 import { getTeams, getSquad } from '../api/football';
 import type { Team, SquadPlayer } from '../types';
 import { ChevronLeft, Trophy, MapPin, Loader2 } from 'lucide-react';
@@ -18,7 +18,7 @@ export const LeagueDetails = () => {
     const [leagueInfo, setLeagueInfo] = useState<NormalizedLeague | null>(null);
     const [standings, setStandings] = useState<NormalizedStanding[]>([]);
     const [fixtures, setFixtures] = useState<NormalizedMatch[]>([]);
-    const [leaders, setLeaders] = useState<NormalizedLeader[]>([]);
+    const [leaders, _setLeaders] = useState<NormalizedLeader[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
     const [squadPlayers, setSquadPlayers] = useState<SquadPlayer[]>([]);
     const [selectedRole, setSelectedRole] = useState<string>('all');
