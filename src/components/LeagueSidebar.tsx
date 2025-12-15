@@ -31,7 +31,7 @@ export const LeagueSidebar = ({ activeSection, onSelect }: LeagueSidebarProps) =
                 animate={{ opacity: 1, x: 0 }}
                 className="hidden lg:flex flex-col gap-1.5 glass-card p-4 sticky top-28"
             >
-                <h3 className="text-dark-500 text-xs font-semibold uppercase mb-3 px-3 tracking-wider">Navigazione</h3>
+                <h3 className="text-gray-400 text-xs font-semibold uppercase mb-3 px-3 tracking-wider">Navigazione</h3>
                 {MENU_ITEMS.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
@@ -44,10 +44,10 @@ export const LeagueSidebar = ({ activeSection, onSelect }: LeagueSidebarProps) =
                             onClick={() => onSelect(item.id)}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                                 ? 'bg-gradient-to-r from-primary-600/20 to-primary-500/10 text-primary-400 border border-primary-500/30 shadow-glow-sm'
-                                : 'text-dark-400 hover:text-white hover:bg-white/5'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
                         >
-                            <Icon className={`w-4 h-4 ${isActive ? 'text-primary-400' : 'text-dark-500'}`} />
+                            <Icon className={`w-4 h-4 ${isActive ? 'text-primary-400' : 'text-gray-400'}`} />
                             {item.label}
                         </motion.button>
                     );
@@ -66,7 +66,7 @@ export const LeagueSidebar = ({ activeSection, onSelect }: LeagueSidebarProps) =
                                 onClick={() => onSelect(item.id)}
                                 className={`flex items-center gap-2 px-5 py-3 rounded-2xl whitespace-nowrap text-sm font-medium transition-all duration-200 ${isActive
                                     ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-glow-sm'
-                                    : 'bg-dark-800/50 backdrop-blur-sm border border-white/10 text-dark-400 hover:bg-dark-700 hover:text-white'
+                                    : 'bg-gray-100 backdrop-blur-sm border border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />

@@ -1,21 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getItalianLeagues } from '../api/football';
-import type { League } from '../types';
+import { fetchItalianLeagues, type NormalizedLeague } from '../api';
 import { Trophy, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const Home = () => {
-    const [leagues, setLeagues] = useState<League[]>([]);
+    const [leagues, setLeagues] = useState<NormalizedLeague[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchLeagues = async () => {
-            const data = await getItalianLeagues();
+        const loadData = async () => {
+            const data = await fetchItalianLeagues();
             setLeagues(data);
             setLoading(false);
         };
-        fetchLeagues();
+        loadData();
     }, []);
 
     if (loading) {
@@ -25,7 +24,7 @@ export const Home = () => {
                     <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse" />
                     <Loader2 className="w-12 h-12 text-primary-500 animate-spin relative" />
                 </div>
-                <p className="text-dark-400 text-sm">Caricamento campionati...</p>
+                <p className="text-gray-500 text-sm">Caricamento campionati...</p>
             </div>
         );
     }
@@ -58,7 +57,7 @@ export const Home = () => {
                     <span className="text-white">Calcio</span>
                     <span className="text-gradient">Stats</span>
                 </h1>
-                <p className="text-dark-400 text-lg max-w-md mx-auto">
+                <p className="text-gray-500 text-lg max-w-md mx-auto">
                     Segui tutti i campionati italiani dalla Serie A alla Serie C
                 </p>
             </motion.div>
@@ -70,9 +69,9 @@ export const Home = () => {
                     animate={{ opacity: 1 }}
                     className="glass-card p-12 text-center"
                 >
-                    <Trophy className="w-16 h-16 text-dark-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-dark-300 mb-2">Nessun campionato disponibile</h3>
-                    <p className="text-dark-500">Riprova più tardi</p>
+                    <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">Nessun campionato disponibile</h3>
+                    <p className="text-gray-400">Riprova più tardi</p>
                 </motion.div>
             ) : (
                 <motion.div
@@ -90,13 +89,13 @@ export const Home = () => {
                         >
                             <Link
                                 to={`/league/${league.id}`}
-                                className="glass-card-hover p-5 flex items-center gap-4 group block h-full"
+                                className="glass-card-hover p-5 flex items-center gap-4 group h-full"
                             >
                                 {/* League Logo */}
                                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform p-2.5">
-                                    {league.img ? (
+                                    {league.logo ? (
                                         <img
-                                            src={league.img}
+                                            src={league.logo}
                                             alt={league.name}
                                             className="w-full h-full object-contain"
                                             onError={(e) => {
@@ -110,16 +109,16 @@ export const Home = () => {
 
                                 {/* League Info */}
                                 <div className="flex-grow min-w-0">
-                                    <h3 className="font-semibold text-white group-hover:text-primary-400 transition-colors truncate">
+                                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-500 transition-colors truncate">
                                         {league.name}
                                     </h3>
-                                    {league.is_cup == true && (
+                                    {league.isCup && (
                                         <span className="badge-secondary text-[10px] mt-1.5">COPPA</span>
                                     )}
                                 </div>
 
                                 {/* Arrow */}
-                                <ChevronRight className="w-5 h-5 text-dark-600 group-hover:text-primary-400 group-hover:translate-x-1 transition-all shrink-0" />
+                                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary-400 group-hover:translate-x-1 transition-all shrink-0" />
                             </Link>
                         </motion.div>
                     ))}

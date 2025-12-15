@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getTeam, getVenue, getCoach } from '../api/football';
-import type { TeamDetails as TeamDetailsType, Venue, Coach } from '../types';
-import { ChevronLeft, Users, Building2, Loader2, Calendar, Globe, MapPin } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { fetchTeam, fetchFixtures, type NormalizedTeam, type NormalizedMatch } from '../api';
+import { ChevronLeft, Users, Building2, Loader2, Calendar, Globe, MapPin, History } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAppContext } from '../context/AppContext';
 
 export const TeamDetails = () => {
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
+    const { currentSeasonId } = useAppContext();
+    // Use context first, fallback to URL param for direct links
+    const seasonId = currentSeasonId || searchParams.get('season_id');
     const navigate = useNavigate();
-    const [team, setTeam] = useState<TeamDetailsType | null>(null);
-    const [venue, setVenue] = useState<Venue | null>(null);
-    const [coach, setCoach] = useState<Coach | null>(null);
+    const [team, setTeam] = useState<NormalizedTeam | null>(null);
+    const [recentMatches, setRecentMatches] = useState<NormalizedMatch[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,6 +35,19 @@ export const TeamDetails = () => {
                         setCoach(coachData);
                     }
                 }
+
+                // Fetch team's recent fixtures (with season_id if available)
+                if (seasonId) {
+                    const fixturesData = await getTeamFixtures(id, seasonId);
+                    console.log('Fixtures data for team', id, 'season', seasonId, ':', fixturesData);
+                    // Filter completed matches (status 3 = Finished) and sort by date descending
+                    const completedMatches = fixturesData
+                        .filter((f: any) => f.teams?.home && f.teams?.away && (f.status === 3 || f.status_name === 'Finished'))
+                        .sort((a: any, b: any) => new Date(b.time?.date || b.start_date || '').getTime() - new Date(a.time?.date || a.start_date || '').getTime())
+                        .slice(0, 10);
+                    console.log('Completed matches:', completedMatches);
+                    setRecentMatches(completedMatches);
+                }
             } catch (error) {
                 console.error("Error fetching team data:", error);
             } finally {
@@ -39,7 +55,7 @@ export const TeamDetails = () => {
             }
         };
         fetchData();
-    }, [id]);
+    }, [id, seasonId]);
 
     if (loading) {
         return (
@@ -162,6 +178,81 @@ export const TeamDetails = () => {
                     </div>
                 </div>
             </motion.div>
+
+            {/* Recent Matches Section */}
+            {recentMatches.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="glass-card p-6"
+                >
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-primary-500/20 rounded-xl">
+                            <History className="w-5 h-5 text-primary-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white">Ultime Partite</h2>
+                    </div>
+
+                    <div className="space-y-3">
+                        {recentMatches.map((match) => {
+                            if (!match.teams) return null;
+
+                            const isHome = String(match.teams.home.id) === String(id);
+                            const opponent = isHome ? match.teams.away : match.teams.home;
+
+                            // Compute form from scores
+                            const homeScore = Number(match.scores?.home_score || 0);
+                            const awayScore = Number(match.scores?.away_score || 0);
+                            let form: 'W' | 'D' | 'L';
+                            if (isHome) {
+                                form = homeScore > awayScore ? 'W' : homeScore < awayScore ? 'L' : 'D';
+                            } else {
+                                form = awayScore > homeScore ? 'W' : awayScore < homeScore ? 'L' : 'D';
+                            }
+
+                            const formColor = form === 'W' ? 'bg-green-500' : form === 'D' ? 'bg-yellow-500' : 'bg-red-500';
+                            const formText = form === 'W' ? 'V' : form === 'D' ? 'P' : 'S';
+
+                            return (
+                                <div
+                                    key={match.id}
+                                    className="flex items-center gap-4 p-4 bg-dark-800/50 rounded-xl hover:bg-dark-700/50 transition-colors"
+                                >
+                                    {/* Form Badge */}
+                                    <div className={`w-10 h-10 ${formColor} rounded-xl flex items-center justify-center shrink-0`}>
+                                        <span className="text-white font-bold text-sm">{formText}</span>
+                                    </div>
+
+                                    {/* Opponent */}
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <img
+                                            src={opponent.img || `https://cdn.soccersapi.com/images/soccer/teams/100/${opponent.id}.png`}
+                                            alt={opponent.name}
+                                            className="w-8 h-8 object-contain"
+                                            onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                                        />
+                                        <div className="min-w-0">
+                                            <Link to={`/team/${opponent.id}`} className="text-white font-medium truncate hover:text-primary-400 transition-colors">{opponent.name}</Link>
+                                            <p className="text-dark-400 text-xs">{isHome ? 'Casa' : 'Trasferta'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Score */}
+                                    <div className="text-right shrink-0">
+                                        <p className="text-white font-bold text-lg">
+                                            {match.scores?.home_score ?? '-'} - {match.scores?.away_score ?? '-'}
+                                        </p>
+                                        <p className="text-dark-500 text-xs">
+                                            {new Date((match as any).time?.date || match.start_date || '').toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            )}
         </div>
     );
 };

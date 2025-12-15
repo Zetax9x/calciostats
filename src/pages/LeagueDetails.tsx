@@ -1,20 +1,24 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getStandings, getFixtures, getLeague, getTopScorers, getTeams, getSquad } from '../api/football';
-import type { Standing, Fixture, League, Leader, Team, SquadPlayer, Venue } from '../types';
+// Using normalized API-Football adapter
+import { fetchStandings, fetchFixtures, fetchLeague, fetchLeaders, type NormalizedStanding, type NormalizedMatch, type NormalizedLeague, type NormalizedLeader } from '../api';
+import { getTeams, getSquad } from '../api/football';
+import type { Team, SquadPlayer } from '../types';
 import { ChevronLeft, Trophy, MapPin, Loader2 } from 'lucide-react';
 import { LeagueSidebar } from '../components/LeagueSidebar';
 import { motion } from 'framer-motion';
+import { useAppContext } from '../context/AppContext';
 
 export const LeagueDetails = () => {
     const { id } = useParams<{ id: string }>();
+    const { setCurrentLeague } = useAppContext();
     const [activeSection, setActiveSection] = useState('classifica');
 
     // Data State
-    const [leagueInfo, setLeagueInfo] = useState<League | null>(null);
-    const [standings, setStandings] = useState<Standing[]>([]);
-    const [fixtures, setFixtures] = useState<Fixture[]>([]);
-    const [leaders, setLeaders] = useState<Leader[]>([]);
+    const [leagueInfo, setLeagueInfo] = useState<NormalizedLeague | null>(null);
+    const [standings, setStandings] = useState<NormalizedStanding[]>([]);
+    const [fixtures, setFixtures] = useState<NormalizedMatch[]>([]);
+    const [leaders, setLeaders] = useState<NormalizedLeader[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
     const [squadPlayers, setSquadPlayers] = useState<SquadPlayer[]>([]);
     const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -34,9 +38,11 @@ export const LeagueDetails = () => {
             if (!id) return;
             setLoading(true);
             try {
-                const data = await getLeague(id);
+                const data = await fetchLeague(id);
                 if (!data) throw new Error('League not found');
                 setLeagueInfo(data);
+                // Store in global context (cast for compatibility)
+                setCurrentLeague(data as any);
             } catch (err: any) {
                 console.error("Error in fetchLeagueInfo:", err);
                 setError(err.message || 'Error fetching league');
@@ -45,14 +51,14 @@ export const LeagueDetails = () => {
             }
         };
         fetchLeagueInfo();
-    }, [id]);
+    }, [id, setCurrentLeague]);
 
     // Data Fetching based on Active Section
     const fetchingSquadsRef = useRef(false);
 
     useEffect(() => {
         if (!leagueInfo) return;
-        const currentSeasonId = leagueInfo.id_current_season;
+        const currentSeasonId = leagueInfo.currentSeasonId;
         if (!currentSeasonId) return;
 
         const fetchData = async () => {
@@ -65,19 +71,19 @@ export const LeagueDetails = () => {
             try {
                 // Fetch Standings
                 if (activeSection === 'classifica' && standings.length === 0) {
-                    const data = await getStandings(currentSeasonId);
+                    const data = await fetchStandings(currentSeasonId, id);
                     setStandings(data || []);
                 }
                 // Fetch Fixtures 
                 else if ((activeSection === 'partite' || activeSection === 'risultati') && fixtures.length === 0) {
-                    const data = await getFixtures(leagueInfo.id, currentSeasonId);
+                    const data = await fetchFixtures(currentSeasonId, { leagueId: id });
                     setFixtures(data || []);
                 }
                 // Fetch Leaders (Top Scorers)
                 else if (activeSection === 'leaders' && leaders.length === 0) {
                     console.log("Fetching leaders for:", currentSeasonId);
-                    let data = await getTopScorers(currentSeasonId);
-                    setLeaders(data || []);
+                    //let data = await fetchLeaders(currentSeasonId, id);
+                    // setLeaders(data || []);
                 }
                 // Fetch Teams (for Venues)
                 else if (activeSection === 'venues' && teams.length === 0) {
@@ -97,19 +103,19 @@ export const LeagueDetails = () => {
                         // Always prefer Standings for the source of truth for teams list
                         if (standings.length > 0) {
                             teamsToFetch = standings.map(s => ({
-                                id: s.team_id,
-                                name: s.team_name,
-                                img: s.team_badge || s.img || '',
+                                id: s.team.id,
+                                name: s.team.name,
+                                img: s.team.logo || '',
                             }));
                         } else {
                             // Fetch standings if not available
                             console.log("Fetching standings to get team list...");
-                            const stData = await getStandings(currentSeasonId);
+                            const stData = await fetchStandings(currentSeasonId, id);
                             setStandings(stData || []);
                             teamsToFetch = (stData || []).map(s => ({
-                                id: s.team_id,
-                                name: s.team_name,
-                                img: s.team_badge || s.img || '',
+                                id: s.team.id,
+                                name: s.team.name,
+                                img: s.team.logo || '',
                             }));
                         }
 
@@ -178,7 +184,7 @@ export const LeagueDetails = () => {
         try {
             const now = new Date();
             const safeDate = (d: string) => new Date(d).getTime();
-            const getDate = (f: Fixture) => f.start_date || f.date_match || f.time?.date || '';
+            const getDate = (f: NormalizedMatch) => f.date || '';
 
             const next = fixtures
                 .filter(f => getDate(f) && new Date(getDate(f)) >= now)
@@ -208,7 +214,7 @@ export const LeagueDetails = () => {
                     <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse" />
                     <Loader2 className="w-12 h-12 text-primary-500 animate-spin relative" />
                 </div>
-                <p className="text-dark-400 text-sm">Caricamento campionato...</p>
+                <p className="text-gray-500 text-sm">Caricamento campionato...</p>
             </div>
         );
     }
@@ -233,7 +239,7 @@ export const LeagueDetails = () => {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
             >
-                <Link to="/" className="inline-flex items-center gap-2 text-dark-400 hover:text-white transition-colors group">
+                <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors group">
                     <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                     <span className="text-sm font-medium">Campionati</span>
                 </Link>
@@ -250,19 +256,19 @@ export const LeagueDetails = () => {
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary-500/10 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
-                    <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 p-3">
+                    <div className="w-20 h-20 bg-gray-200 rounded-2xl flex items-center justify-center shrink-0 p-3">
                         <img
-                            src={leagueInfo.img}
+                            src={leagueInfo.logo}
                             alt={leagueInfo.name}
                             className="w-full h-full object-contain"
                             onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
                         />
                     </div>
                     <div className="text-center sm:text-left">
-                        <h1 className="text-2xl md:text-3xl font-display font-bold text-white mb-2">{leagueInfo.name}</h1>
+                        <h1 className="text-2xl md:text-3xl font-display font-bold text-gray-800 mb-2">{leagueInfo.name}</h1>
                         <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3 text-sm">
-                            <span className="text-dark-500">Stagione {leagueInfo.id_current_season}</span>
-                            {leagueInfo.is_cup === true && (
+                            <span className="text-gray-500">Stagione {leagueInfo.currentSeasonId}</span>
+                            {leagueInfo.isCup === true && (
                                 <span className="badge-secondary">COPPA</span>
                             )}
                         </div>
@@ -276,14 +282,14 @@ export const LeagueDetails = () => {
                 {/* Left Sidebar */}
                 <LeagueSidebar activeSection={activeSection} onSelect={setActiveSection} />
 
-                <div className="flex-grow w-full min-h-[400px]">
+                <div className="flex-grow w-full min-w-0 min-h-[400px] overflow-hidden">
                     {fetchingData && activeSection !== 'players' ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-4">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse" />
                                 <Loader2 className="w-10 h-10 text-primary-500 animate-spin relative" />
                             </div>
-                            <p className="text-dark-400 text-sm">Caricamento dati...</p>
+                            <p className="text-gray-500 text-sm">Caricamento dati...</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -293,8 +299,8 @@ export const LeagueDetails = () => {
                                 standings.length > 0 ? (
                                     <div className="overflow-x-auto glass-card p-0">
                                         <table className="w-full text-left text-sm">
-                                            <thead className="bg-dark-800/50 uppercase text-xs tracking-wider">
-                                                <tr className="border-b border-white/10 text-dark-400">
+                                            <thead className="bg-gray-100/50 uppercase text-xs tracking-wider">
+                                                <tr className="border-b border-gray-200 text-gray-500">
                                                     <th className="py-3.5 pl-4 w-12">#</th>
                                                     <th className="py-3.5 px-2">Squadra</th>
                                                     <th className="py-3.5 text-center w-10 hidden sm:table-cell">PG</th>
@@ -307,51 +313,60 @@ export const LeagueDetails = () => {
                                                     <th className="py-3.5 text-center w-14 font-bold text-white pr-4">Pt</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-white/5">
-                                                {standings.map((team) => {
-                                                    const fullStatus = ((team.status || "") + " " + (team.result || "")).toLowerCase();
-                                                    let zoneColor = "border-l-4 border-l-transparent hover:bg-white/5";
+                                            <tbody className="divide-y divide-gray-100">
+                                                {standings.map((standing) => {
+                                                    const desc = (standing.description || "").toLowerCase();
+                                                    let zoneColor = "border-l-4 border-l-transparent hover:bg-gray-50";
 
-                                                    if (fullStatus) {
-                                                        if (fullStatus.includes("champions") || fullStatus.includes("promotion")) {
-                                                            if (fullStatus.includes("playoff") || fullStatus.includes("play-off") || fullStatus.includes("play off") || fullStatus.includes("qualification")) {
-                                                                zoneColor = "border-l-4 border-l-blue-400 bg-blue-500/25";
-                                                            } else {
-                                                                zoneColor = "border-l-4 border-l-primary-500 bg-primary-500/25";
-                                                            }
-                                                        } else if (fullStatus.includes("europa") || fullStatus.includes("conference")) {
-                                                            zoneColor = "border-l-4 border-l-secondary-400 bg-secondary-500/25";
-                                                        } else if (fullStatus.includes("relegation")) {
-                                                            if (fullStatus.includes("playoff") || fullStatus.includes("play-off") || fullStatus.includes("play off")) {
-                                                                zoneColor = "border-l-4 border-l-orange-400 bg-orange-500/25";
-                                                            } else {
-                                                                zoneColor = "border-l-4 border-l-red-400 bg-red-500/25";
-                                                            }
-                                                        }
+                                                    if (standing.position === 1) {
+                                                        // 🏆 Campione / Scudetto - Oro premium
+                                                        zoneColor = "border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-100/80 to-amber-50";
+                                                    } else if (desc.includes("champions")) {
+                                                        // ⭐ Champions League - Blu royal
+                                                        zoneColor = "border-l-4 border-l-blue-600 bg-blue-100/60";
+                                                    } else if (desc.includes("europa")) {
+                                                        // 🟠 Europa League - Arancione
+                                                        zoneColor = "border-l-4 border-l-orange-500 bg-orange-100/60";
+                                                    } else if (desc.includes("conference")) {
+                                                        // 💚 Conference League - Verde smeraldo
+                                                        zoneColor = "border-l-4 border-l-emerald-500 bg-emerald-100/60";
+                                                    } else if (desc.includes("promotion playoffs") || desc.includes("promotion - play") || desc.includes("qualification playoffs")) {
+                                                        // ⬆️ Playoff promozione - Ciano
+                                                        zoneColor = "border-l-4 border-l-cyan-500 bg-cyan-100/60";
+                                                    } else if (desc.includes("promotion")) {
+                                                        // 🔼 Promozione diretta - Verde
+                                                        zoneColor = "border-l-4 border-l-green-500 bg-green-100/60";
+                                                    } else if (desc.includes("relegation playoffs") || desc.includes("relegation - play")) {
+                                                        // ⚠️ Playout - Arancione scuro
+                                                        zoneColor = "border-l-4 border-l-amber-600 bg-amber-100/60";
+                                                    } else if (desc.includes("relegation")) {
+                                                        // 🔻 Retrocessione - Rosso
+                                                        zoneColor = "border-l-4 border-l-red-500 bg-red-100/60";
                                                     }
 
+
                                                     return (
-                                                        <tr key={team.team_id} className={`transition-colors ${zoneColor}`}>
-                                                            <td className="py-3 pl-4 font-medium text-dark-500">{team.overall?.position}</td>
-                                                            <td className="py-3 px-2 font-semibold text-white flex items-center gap-3">
+                                                        <tr key={standing.team.id} className={`transition-colors ${zoneColor}`}>
+                                                            <td className="py-3 pl-4 font-medium text-gray-500">{standing.position}</td>
+                                                            <td className="py-3 px-2 font-semibold text-gray-800 flex items-center gap-3">
                                                                 <img
-                                                                    src={team.team_badge || team.img || `https://cdn.soccersapi.com/images/soccer/teams/100/${team.team_id}.png`}
-                                                                    alt={team.team_name}
-                                                                    className="w-7 h-7 object-contain bg-dark-700 rounded-lg p-0.5"
+                                                                    src={standing.team.logo || ''}
+                                                                    alt={standing.team.name}
+                                                                    className="w-7 h-7 object-contain bg-gray-100 rounded-lg p-0.5"
                                                                     onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
                                                                 />
-                                                                <Link to={`/team/${team.team_id}`} className="hover:text-primary-400 transition-colors">
-                                                                    {team.team_name}
+                                                                <Link to={`/team/${standing.team.id}`} className="hover:text-primary-500 transition-colors">
+                                                                    {standing.team.name}
                                                                 </Link>
                                                             </td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.games_played}</td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.won}</td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.draw}</td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.lost}</td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.goals_scored}</td>
-                                                            <td className="py-3 text-center text-dark-400 hidden sm:table-cell">{team.overall?.goals_against}</td>
-                                                            <td className="py-3 text-center text-dark-400">{team.overall?.goals_diff}</td>
-                                                            <td className="py-3 text-center font-bold text-gradient pr-4">{team.overall?.points}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.played}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.won}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.drawn}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.lost}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.goalsFor}</td>
+                                                            <td className="py-3 text-center text-gray-500 hidden sm:table-cell">{standing.goalsAgainst}</td>
+                                                            <td className="py-3 text-center text-gray-500">{standing.goalDifference}</td>
+                                                            <td className="py-3 text-center font-bold text-primary-600 pr-4">{standing.points}</td>
                                                         </tr>
                                                     );
                                                 })}
@@ -359,7 +374,7 @@ export const LeagueDetails = () => {
                                         </table>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-12 text-dark-500">Nessuna classifica disponibile.</div>
+                                    <div className="text-center py-12 text-gray-400">Nessuna classifica disponibile.</div>
                                 )
                             )}
 
@@ -377,11 +392,11 @@ export const LeagueDetails = () => {
                                         }
 
                                         const grouped = list.reduce((acc, fixture) => {
-                                            const roundLabel = fixture.round_name || (fixture.round_id ? `Giornata ${fixture.round_id}` : "Altre Partite");
+                                            const roundLabel = fixture.round || "Altre Partite";
                                             if (!acc[roundLabel]) acc[roundLabel] = [];
                                             acc[roundLabel].push(fixture);
                                             return acc;
-                                        }, {} as Record<string, Fixture[]>);
+                                        }, {} as Record<string, NormalizedMatch[]>);
 
                                         const rounds = Object.keys(grouped).sort((a, b) => {
                                             const numA = parseInt(a.replace(/\D/g, '')) || 0;
@@ -394,72 +409,70 @@ export const LeagueDetails = () => {
                                         if (!currentRound || !grouped[currentRound]) return null;
 
                                         return (
-                                            <div className="space-y-6">
-                                                {/* Round Selector */}
-                                                <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                                                    {rounds.map(round => (
-                                                        <button
-                                                            key={round}
-                                                            onClick={() => setActiveRound(round)}
-                                                            className={`px-4 py-2 rounded-xl whitespace-nowrap text-sm font-medium transition-all ${currentRound === round
-                                                                ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-glow-sm'
-                                                                : 'bg-dark-800 text-dark-400 hover:bg-dark-700 hover:text-white border border-white/10'
-                                                                }`}
-                                                        >
-                                                            {round}
-                                                        </button>
-                                                    ))}
+                                            <div className="space-y-6 w-full">
+                                                {/* Round Selector - Dropdown */}
+                                                <div className="flex items-center gap-4">
+                                                    <label className="text-sm font-medium text-gray-600">Giornata:</label>
+                                                    <select
+                                                        value={currentRound}
+                                                        onChange={(e) => setActiveRound(e.target.value)}
+                                                        className="flex-1 max-w-xs px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:border-primary-500 cursor-pointer shadow-sm transition-colors"
+                                                    >
+                                                        {rounds.map(round => (
+                                                            <option key={round} value={round}>
+                                                                {round}
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
 
                                                 {/* Matches */}
                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                                     {grouped[currentRound].map((fixture) => {
-                                                        const homeName = fixture.teams?.home?.name || fixture.home_team_name || "Squadra Casa";
-                                                        const awayName = fixture.teams?.away?.name || fixture.away_team_name || "Squadra Ospite";
-                                                        const homeScore = fixture.scores?.home_score ?? fixture.home_score;
-                                                        const awayScore = fixture.scores?.away_score ?? fixture.away_score;
+                                                        const homeName = fixture.homeTeam.name;
+                                                        const awayName = fixture.awayTeam.name;
+                                                        const homeScore = fixture.score.home;
+                                                        const awayScore = fixture.score.away;
 
-                                                        let timeDisplay = fixture.time?.time || fixture.start_time || "";
-                                                        if (timeDisplay && timeDisplay.split(':').length === 3) timeDisplay = timeDisplay.split(':').slice(0, 2).join(':');
+                                                        let timeDisplay = fixture.time || "";
 
-                                                        const dateRaw = fixture.start_date || fixture.date_match || fixture.time?.date || '';
                                                         let dateDisplay = "";
-                                                        if (dateRaw) {
+                                                        if (fixture.date) {
                                                             try {
-                                                                const d = new Date(dateRaw);
+                                                                const d = new Date(fixture.date);
                                                                 dateDisplay = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' }).format(d);
                                                             } catch (e) { }
                                                         }
 
                                                         return (
-                                                            <div key={fixture.id} className="glass-card p-4 flex items-center justify-between group relative overflow-hidden">
-                                                                <div className="absolute top-0 left-0 bg-dark-700 px-2 py-0.5 rounded-br-lg text-[10px] text-dark-400 font-mono">
+                                                            <Link key={fixture.id} to={`/match/${fixture.id}`} className="glass-card p-4 flex items-center justify-between group relative overflow-hidden hover:bg-gray-50 transition-colors cursor-pointer">
+                                                                <div className="absolute top-0 left-0 bg-gray-100 px-2 py-2 rounded-br-lg text-[12px] text-gray-500 font-mono">
                                                                     {dateDisplay}
                                                                 </div>
                                                                 <div className="flex-1 text-right flex items-center justify-end gap-3 mt-2 sm:mt-0">
-                                                                    <span className="font-medium text-dark-300 group-hover:text-white transition-colors line-clamp-1 text-sm">{homeName}</span>
-                                                                    {fixture.teams?.home?.img && (
-                                                                        <img src={fixture.teams.home.img} alt={homeName} className="w-7 h-7 object-contain" />
+                                                                    <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/team/${fixture.homeTeam.id}`; }} className="font-medium text-gray-700 hover:text-primary-500 transition-colors line-clamp-1 text-sm cursor-pointer">{homeName}</span>
+                                                                    {fixture.homeTeam.logo && (
+                                                                        <img src={fixture.homeTeam.logo} alt={homeName} className="w-7 h-7 object-contain" />
                                                                     )}
                                                                 </div>
-                                                                <div className="mx-3 flex flex-col items-center justify-center min-w-[65px] bg-dark-800 rounded-xl py-2 px-2 mt-2 sm:mt-0">
+                                                                <div className="mx-3 flex flex-col items-center justify-center min-w-[65px] bg-gray-100 rounded-xl py-2 px-2 mt-2 sm:mt-0">
                                                                     {activeSection === 'risultati' ? (
-                                                                        <span className="text-lg font-bold text-white tracking-wider whitespace-nowrap">
+                                                                        <span className="text-lg font-bold text-gray-800 tracking-wider whitespace-nowrap">
                                                                             {homeScore} - {awayScore}
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-lg font-bold text-primary-400 whitespace-nowrap">
+                                                                        <span className="text-lg font-bold text-primary-500 whitespace-nowrap">
                                                                             {timeDisplay}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                                 <div className="flex-1 text-left flex items-center justify-start gap-3 mt-2 sm:mt-0">
-                                                                    {fixture.teams?.away?.img && (
-                                                                        <img src={fixture.teams.away.img} alt={awayName} className="w-7 h-7 object-contain" />
+                                                                    {fixture.awayTeam.logo && (
+                                                                        <img src={fixture.awayTeam.logo} alt={awayName} className="w-7 h-7 object-contain" />
                                                                     )}
-                                                                    <span className="font-medium text-dark-300 group-hover:text-white transition-colors line-clamp-1 text-sm">{awayName}</span>
+                                                                    <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/team/${fixture.awayTeam.id}`; }} className="font-medium text-gray-700 hover:text-primary-500 transition-colors line-clamp-1 text-sm cursor-pointer">{awayName}</span>
                                                                 </div>
-                                                            </div>
+                                                            </Link>
                                                         );
                                                     })}
                                                 </div>
@@ -475,8 +488,8 @@ export const LeagueDetails = () => {
                                     leaders.length > 0 ? (
                                         <div className="overflow-x-auto glass-card p-0">
                                             <table className="w-full text-left text-sm">
-                                                <thead className="bg-dark-800/50 uppercase text-xs tracking-wider">
-                                                    <tr className="border-b border-white/10 text-dark-400">
+                                                <thead className="bg-gray-100/50 uppercase text-xs tracking-wider">
+                                                    <tr className="border-b border-gray-200 text-gray-500">
                                                         <th className="py-3.5 pl-4 w-12">#</th>
                                                         <th className="py-3.5 px-2">Giocatore</th>
                                                         <th className="py-3.5 px-2 hidden sm:table-cell">Squadra</th>
@@ -484,23 +497,22 @@ export const LeagueDetails = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5">
-                                                    {leaders.slice(0, 10).map((player, idx) => (
-                                                        <tr key={player.player.id || idx} className="hover:bg-white/5 transition-colors">
-                                                            <td className="py-3 pl-4 font-medium text-dark-500">{player.pos || idx + 1}</td>
-                                                            <td className="py-3 px-2 font-semibold text-white">{player.player.name}</td>
-                                                            <td className="py-3 px-2 text-dark-400 hidden sm:table-cell">
+                                                    {leaders.slice(0, 10).map((leader, idx) => (
+                                                        <tr key={leader.player.id || idx} className="hover:bg-gray-100 transition-colors">
+                                                            <td className="py-3 pl-4 font-medium text-gray-500">{leader.position || idx + 1}</td>
+                                                            <td className="py-3 px-2 font-semibold text-gray-800">{leader.player.name}</td>
+                                                            <td className="py-3 px-2 text-gray-500 hidden sm:table-cell">
                                                                 <div className="flex items-center gap-2">
                                                                     <img
-                                                                        src={`https://cdn.soccersapi.com/images/soccer/teams/100/${player.team.id}.png`}
-                                                                        alt={player.team.name}
-                                                                        className="w-6 h-6 object-contain bg-dark-700 rounded-lg p-0.5"
+                                                                        src={leader.team.logo}
+                                                                        alt={leader.team.name}
+                                                                        className="w-6 h-6 object-contain bg-gray-100 rounded-lg p-0.5"
                                                                     />
-                                                                    {player.team.name}
+                                                                    {leader.team.name}
                                                                 </div>
                                                             </td>
-                                                            <td className="py-3 pr-4 text-right font-bold text-gradient">
-                                                                {player.goals.overall}
-                                                                {player.penalties > 0 && <span className="text-dark-500 text-sm font-normal ml-1">({player.penalties})</span>}
+                                                            <td className="py-3 pr-4 text-right font-bold text-primary-600">
+                                                                {leader.goals}
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -509,8 +521,8 @@ export const LeagueDetails = () => {
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-16 glass-card border-dashed">
-                                            <Trophy className="w-12 h-12 text-dark-600 mb-2" />
-                                            <p className="text-dark-400">Dati marcatori non disponibili.</p>
+                                            <Trophy className="w-12 h-12 text-gray-300 mb-2" />
+                                            <p className="text-gray-500">Dati marcatori non disponibili.</p>
                                         </div>
                                     )
                                 )
@@ -572,7 +584,7 @@ export const LeagueDetails = () => {
                                                     onClick={() => setSelectedRole(tab.id)}
                                                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${selectedRole === tab.id
                                                         ? 'bg-blue-600 text-white'
-                                                        : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                                                        : 'text-gray-400 hover:text-gray-900 hover:bg-gray-800'
                                                         }`}
                                                 >
                                                     {tab.label}
@@ -711,7 +723,8 @@ export const LeagueDetails = () => {
                             }
 
                         </div >
-                    )}
+                    )
+                    }
                 </div >
             </div >
         </div >
@@ -719,12 +732,12 @@ export const LeagueDetails = () => {
 }
 
 // Component to display Venue Grid based on Standings
-function VenueGrid({ standings }: { standings: Standing[] }) {
+function VenueGrid({ standings }: { standings: NormalizedStanding[] }) {
     if (standings.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 bg-gray-900/30 rounded-2xl border border-gray-800 border-dashed">
-                <MapPin className="w-12 h-12 text-gray-600 mb-2" />
-                <p className="text-gray-400">Classifica non disponibile, impossibile mostrare gli stadi.</p>
+            <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
+                <MapPin className="w-12 h-12 text-gray-400 mb-2" />
+                <p className="text-gray-500">Classifica non disponibile, impossibile mostrare gli stadi.</p>
             </div>
         );
     }
@@ -732,19 +745,19 @@ function VenueGrid({ standings }: { standings: Standing[] }) {
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-red-500/20 rounded-lg text-red-500">
+                <div className="p-2 bg-red-100 rounded-lg text-red-500">
                     <MapPin className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Squadre & Stadi ({standings.length})</h2>
+                <h2 className="text-xl font-bold text-gray-800">Squadre & Stadi ({standings.length})</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {standings.map((standing) => (
                     <VenueCard
-                        key={standing.team_id}
-                        teamId={standing.team_id}
-                        teamName={standing.team_name}
-                        teamImg={standing.team_badge || standing.img || `https://cdn.soccersapi.com/images/soccer/teams/100/${standing.team_id}.png`}
+                        key={standing.team.id}
+                        teamId={standing.team.id}
+                        teamName={standing.team.name}
+                        teamImg={standing.team.logo || ''}
                     />
                 ))}
             </div>
@@ -754,7 +767,7 @@ function VenueGrid({ standings }: { standings: Standing[] }) {
 
 // Individual Card that handles its own fetching chain
 function VenueCard({ teamId, teamName, teamImg }: { teamId: string, teamName: string, teamImg: string }) {
-    const [venue, setVenue] = useState<Venue | null>(null);
+    const [venue, setVenue] = useState<{ id: string; name: string; city?: string; capacity?: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [fetched, setFetched] = useState(false);
@@ -801,7 +814,7 @@ function VenueCard({ teamId, teamName, teamImg }: { teamId: string, teamName: st
                 <img
                     src={teamImg}
                     alt={teamName}
-                    className="w-10 h-10 object-contain bg-white/5 rounded-full p-1"
+                    className="w-10 h-10 object-contain bg-gray-100 rounded-full p-1"
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
                 <span className="font-bold text-white">{teamName}</span>
@@ -813,9 +826,9 @@ function VenueCard({ teamId, teamName, teamImg }: { teamId: string, teamName: st
                     <p className="text-red-500 text-sm">Errore nel caricamento dello stadio.</p>
                 ) : venue ? (
                     <>
-                        {venue.coordinates ? (
+                        {venue ? (
                             <a
-                                href={`https://www.google.com/maps?q=${venue.coordinates}`}
+                                // href={`https://www.google.com/maps?q=${venue.coordinates.lat},${venue.coordinates.long}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-emerald-400 font-medium hover:text-emerald-300 hover:underline flex items-center gap-1 group/link"
@@ -825,7 +838,7 @@ function VenueCard({ teamId, teamName, teamImg }: { teamId: string, teamName: st
                                 <MapPin className="w-3 h-3 opacity-50 group-hover/link:opacity-100 transition-opacity flex-shrink-0" />
                             </a>
                         ) : (
-                            <p className="text-emerald-400 font-medium truncate">{venue.name}</p>
+                            <p className="text-emerald-400 font-medium truncate">{venue}</p>
                         )}
                         <p className="text-gray-500 text-sm truncate">{venue.city}</p>
                         {venue.capacity && <p className="text-gray-600 text-xs mt-1">Cap: {venue.capacity.toLocaleString()}</p>}

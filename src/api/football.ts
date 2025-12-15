@@ -151,3 +151,124 @@ export const getCoach = async (coachId: string): Promise<Coach | null> => {
     });
     return response.data.data;
 };
+
+export const getTeamFixtures = async (teamId: string, seasonId?: string): Promise<Fixture[]> => {
+    // If we have season_id, use fixtures/season endpoint with team filter
+    // Otherwise fall back to fixtures/team endpoint (which may return empty)
+    try {
+        if (seasonId) {
+            // Use season endpoint with team_id filter - this works!
+            const response = await apiClient.get<ApiResponse<Fixture[]>>('/fixtures', {
+                params: {
+                    season_id: seasonId,
+                    team_id: teamId,
+                    t: 'season'
+                }
+            });
+            return response.data.data || [];
+        } else {
+            // Fallback to team endpoint (may return empty for some leagues)
+            const response = await apiClient.get<ApiResponse<Fixture[]>>('/fixtures', {
+                params: {
+                    team_id: teamId,
+                    t: 'team'
+                }
+            });
+            return response.data.data || [];
+        }
+    } catch (error) {
+        console.error("Error fetching team fixtures:", error);
+        return [];
+    }
+};
+
+export const getMatchDetails = async (matchId: string): Promise<Fixture | null> => {
+    // endpoint: fixtures/?match_id=X&t=info for match details
+    try {
+        const response = await apiClient.get<ApiResponse<Fixture>>('/fixtures', {
+            params: {
+                id: matchId,
+                t: 'info'
+            }
+        });
+        return response.data.data || null;
+    } catch (error) {
+        console.error("Error fetching match details:", error);
+        return null;
+    }
+};
+
+export interface H2HData {
+    h2h: any[];  // The array of previous matches
+    home?: any;  // Home team info with events
+    away?: any;  // Away team info with events
+}
+
+export const getH2H = async (team1Id: string, team2Id: string): Promise<H2HData | null> => {
+    // endpoint: h2h/?t=teams&team1=X&team2=Y (per documentation)
+    try {
+        const response = await apiClient.get<ApiResponse<any>>('/h2h', {
+            params: {
+                team1: team1Id,
+                team2: team2Id,
+                t: 'teams'
+            }
+        });
+        console.log('H2H response:', response.data);
+        return response.data.data || null;
+    } catch (error) {
+        console.error("Error fetching H2H:", error);
+        return null;
+    }
+};
+
+// Match Statistics
+export const getMatchStats = async (matchId: string): Promise<any> => {
+    try {
+        const response = await apiClient.get<ApiResponse<any>>('/stats', {
+            params: {
+                id: matchId,
+                t: 'match'
+            }
+        });
+        console.log('Match stats response:', response.data);
+        return response.data.data || null;
+    } catch (error) {
+        console.error("Error fetching match stats:", error);
+        return null;
+    }
+};
+
+// Match Events (goals, cards, substitutions)
+export const getMatchEvents = async (matchId: string): Promise<any[]> => {
+    try {
+        const response = await apiClient.get<ApiResponse<any>>('/fixtures', {
+            params: {
+                id: matchId,
+                t: 'match_events'
+            }
+        });
+        console.log('Match events response:', response.data);
+        return response.data.data || [];
+    } catch (error) {
+        console.error("Error fetching match events:", error);
+        return [];
+    }
+};
+
+// Match Lineups
+export const getMatchLineups = async (matchId: string): Promise<any> => {
+    try {
+        const response = await apiClient.get<ApiResponse<any>>('/fixtures', {
+            params: {
+                id: matchId,
+                t: 'match_lineups'
+            }
+        });
+        console.log('Match lineups response:', response.data);
+        return response.data.data || null;
+    } catch (error) {
+        console.error("Error fetching match lineups:", error);
+        return null;
+    }
+};

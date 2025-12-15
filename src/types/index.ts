@@ -234,3 +234,45 @@ export interface Coach {
     nationality?: string;
     img?: string;
 }
+
+// H2H Types
+export interface H2HMatch {
+    id: number;
+    startdate: string;
+    league: {
+        id: number;
+        name: string;
+        img: string;
+        country: { id: number; name: string; cc: string };
+    };
+    teams: {
+        home: { id: number; name: string; img: string };
+        away: { id: number; name: string; img: string };
+    };
+    scores: {
+        home_score: string;
+        away_score: string;
+        ht_score: string | null;
+        ft_score: string | null;
+        et_score: string | null;
+        ps_score: string | null;
+    };
+    ft_score: string;
+    form: 'W' | 'D' | 'L';
+}
+
+export interface H2HTeamData {
+    id: number;
+    name: string;
+    img: string;
+    events: {
+        overall: H2HMatch[];
+        home: H2HMatch[];
+        away: H2HMatch[];
+    };
+}
+
+export interface H2HResponse {
+    home: H2HTeamData;
+    away?: H2HTeamData;
+}
