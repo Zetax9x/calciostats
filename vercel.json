@@ -7,6 +7,10 @@
         {
             "source": "/apifootball/:path*",
             "destination": "/api/apifootball/:path*"
+        },
+        {
+            "source": "/((?!api|apifootball|assets|favicon).*)",
+            "destination": "/index.html"
         }
     ]
 }

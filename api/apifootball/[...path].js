@@ -74,6 +74,7 @@ export default async function handler(request, response) {
 
         // Set Vercel Edge Cache headers (shared cache for all users)
         // s-maxage = shared cache (CDN), stale-while-revalidate = serve stale while fetching fresh
+        console.log('Setting cache duration:', cacheDuration, 'for path:', apiPath);
         response.setHeader('Cache-Control', `public, s-maxage=${cacheDuration}, stale-while-revalidate=${cacheDuration * 2}`);
 
         return response.status(200).json(data);
