@@ -14,7 +14,7 @@ export default async function handler(request, response) {
     try {
         const res = await fetch(targetUrl, {
             headers: {
-                'x-apisports-key': process.env.VITE_API_FOOTBALL_KEY
+                'x-apisports-key': process.env.API_FOOTBALL_KEY
             }
         });
         const data = await res.json();
