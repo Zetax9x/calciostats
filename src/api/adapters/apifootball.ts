@@ -19,13 +19,19 @@ import type {
     NormalizedPlayer
 } from '../types/normalized';
 
-// API Configuration - API-Football uses header-based auth
-const API_BASE_URL = 'https://v3.football.api-sports.io';
+// API Configuration
+// In production (Vercel), use the proxy for caching
+// In development (localhost), call API directly
+const isProduction = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+const API_BASE_URL = isProduction
+    ? '/apifootball'  // Vercel proxy with caching
+    : 'https://v3.football.api-sports.io';
+
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    headers: {
-        'x-apisports-key': import.meta.env.VITE_API_FOOTBALL_KEY
-    }
+    headers: isProduction
+        ? {} // Proxy handles auth
+        : { 'x-apisports-key': import.meta.env.VITE_API_FOOTBALL_KEY }
 });
 
 interface ApiResponse<T> {
