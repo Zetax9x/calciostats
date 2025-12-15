@@ -1,11 +1,12 @@
 export default async function handler(request, response) {
     // Get the path segments from Vercel's catch-all route
-    const pathSegments = request.query.path || [];
+    const pathSegments = request.query.path || request.query['...path'] || [];
     const apiPath = Array.isArray(pathSegments) ? pathSegments.join('/') : pathSegments;
 
     // Build clean query string, filtering out internal Vercel params
     const query = { ...request.query };
-    delete query.path; // Remove the catch-all path param
+    delete query.path;
+    delete query['...path'];
     const queryString = new URLSearchParams(query).toString();
 
     // Build the target URL for API-Football v3
