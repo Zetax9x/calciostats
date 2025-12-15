@@ -1,12 +1,15 @@
 export default async function handler(request, response) {
-    const { url } = request;
+    // Get the path segments from Vercel's catch-all route
+    const pathSegments = request.query.path || [];
+    const apiPath = Array.isArray(pathSegments) ? pathSegments.join('/') : pathSegments;
 
-    // Extract the path after /apifootball/
-    const apiPath = url.replace('/apifootball/', '').split('?')[0];
-    const queryString = url.includes('?') ? url.split('?')[1] : '';
+    // Build clean query string, filtering out internal Vercel params
+    const query = { ...request.query };
+    delete query.path; // Remove the catch-all path param
+    const queryString = new URLSearchParams(query).toString();
 
     // Build the target URL for API-Football v3
-    const targetUrl = `https://v3.football.api-sports.io/${apiPath}?${queryString}`;
+    const targetUrl = `https://v3.football.api-sports.io/${apiPath}${queryString ? '?' + queryString : ''}`;
 
     try {
         const res = await fetch(targetUrl, {
