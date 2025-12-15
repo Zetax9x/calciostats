@@ -11,10 +11,16 @@ export default async function handler(request, response) {
     // Build the target URL for API-Football v3
     const targetUrl = `https://v3.football.api-sports.io/${apiPath}${queryString ? '?' + queryString : ''}`;
 
+    // Debug logging
+    const apiKey = process.env.API_FOOTBALL_KEY;
+    console.log('API Key exists:', !!apiKey);
+    console.log('API Key length:', apiKey?.length);
+    console.log('Target URL:', targetUrl);
+
     try {
         const res = await fetch(targetUrl, {
             headers: {
-                'x-apisports-key': process.env.API_FOOTBALL_KEY
+                'x-apisports-key': apiKey || ''
             }
         });
         const data = await res.json();
